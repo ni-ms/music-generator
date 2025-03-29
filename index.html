@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Sequence to MIDI (Glassmorphism)</title>
+    <!-- Load necessary libraries -->
+    <script src="https://unpkg.com/@tonejs/midi@2.0.28/build/Midi.js" defer></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js" defer></script>
+
+    <style>
+        /* --- Global Styles & Variables --- */
+        :root {
+            --primary-color: #007bff; /* Keep for reference, but might use lighter/transparent versions */
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --error-color: #dc3545;
+            --light-gray: #f8f9fa; /* Less relevant now */
+            --dark-gray: #343a40;
+            --border-radius: 0.5rem; /* Slightly more rounded for glass */
+            --blur-amount: 10px; /* Control blur intensity */
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            /* --- Vibrant Background for Glass Effect --- */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            /* Or use a background image: */
+            /* background-image: url('your-background-image.jpg'); */
+            /* background-size: cover; */
+            /* background-position: center; */
+            /* background-attachment: fixed; */
+            color: #ffffff; /* Default text color to white/light */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center vertically too */
+            min-height: 100vh;
+        }
+
+        /* --- Main Container (Glass Effect) --- */
+        .container {
+            background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount)); /* Safari support */
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle light border */
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* Soft shadow, can be adjusted */
+            padding: 30px 40px;
+            max-width: 700px;
+            width: 100%;
+            margin-top: 20px; /* Reset if align-items: center is used */
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffffff; /* White text */
+            margin-bottom: 25px;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add shadow for readability */
+        }
+
+        /* --- Input Groups & Labels --- */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85); /* Slightly transparent white */
+        }
+
+        input[type="password"],
+        input[type="text"],
+        textarea {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #212529; /* Dark text inside inputs for readability */
+            background-color: rgba(255, 255, 255, 0.7); /* More opaque white background */
+            background-clip: padding-box;
+            border: 1px solid rgba(255, 255, 255, 0.4); /* Slightly stronger border than container */
+            border-radius: var(--border-radius);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out;
+        }
+
+        input[type="password"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            background-color: rgba(255, 255, 255, 0.9); /* Slightly more opaque on focus */
+            border-color: rgba(255, 255, 255, 0.7);
+            outline: 0;
+            /* Optional: add a subtle glow */
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        /* --- Buttons (Subtle Glass) --- */
+        .button-group {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            display: inline-block;
+            font-weight: 500; /* Slightly bolder */
+            color: #ffffff; /* White text */
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+            user-select: none;
+            /* Button Glass Effect */
+            background: rgba(255, 255, 255, 0.1); /* More transparent than inputs */
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            /* backdrop-filter: blur(2px); /* Optional: subtle blur on buttons too */
+            /* -webkit-backdrop-filter: blur(2px); */
+            padding: 10px 18px;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: var(--border-radius);
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.1s ease;
+             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Shadow for text */
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2); /* Lighten on hover */
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        button:active {
+            transform: scale(0.98); /* Slight press effect */
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        button:focus {
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.3); /* Light focus ring */
+        }
+
+        button:disabled {
+            background: rgba(108, 117, 125, 0.3); /* Use transparent secondary color */
+            border-color: rgba(108, 117, 125, 0.4);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            opacity: 0.8; /* Adjust opacity */
+             text-shadow: none;
+        }
+
+        /* Specific button styles adjusted for glass */
+         #convertButton {
+             /* Override default glass, maybe use success color tint */
+            background: rgba(40, 167, 69, 0.2); /* Transparent Green */
+            border-color: rgba(40, 167, 69, 0.4);
+         }
+
+         #convertButton:hover {
+            background: rgba(40, 167, 69, 0.3);
+            border-color: rgba(40, 167, 69, 0.6);
+         }
+         #convertButton:focus {
+             box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.3); /* Greenish focus ring */
+         }
+
+
+        /* --- Status Area --- */
+        #status {
+            margin-top: -10px;
+            margin-bottom: 20px;
+            padding: 5px 0; /* Reduced padding */
+            font-style: italic;
+            min-height: 1.5em;
+            color: rgba(255, 255, 255, 0.8); /* Light default status */
+            transition: all 0.3s ease; /* Smooth transition for style changes */
+        }
+
+        #status.error {
+            color: var(--error-color); /* Keep error color strong */
+            background-color: rgba(220, 53, 69, 0.15); /* Subtle red glass background */
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            border-radius: calc(var(--border-radius) / 2);
+            padding: 8px 12px;
+            font-weight: bold;
+            font-style: normal;
+            margin-top: 5px;
+            backdrop-filter: blur(2px); /* Subtle blur */
+             -webkit-backdrop-filter: blur(2px);
+        }
+
+        #status.warning {
+            color: var(--warning-color); /* Keep warning color strong */
+            background-color: rgba(255, 193, 7, 0.15); /* Subtle yellow glass background */
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: calc(var(--border-radius) / 2);
+            padding: 8px 12px;
+            font-style: normal;
+            margin-top: 5px;
+            backdrop-filter: blur(2px); /* Subtle blur */
+             -webkit-backdrop-filter: blur(2px);
+        }
+         #status.info {
+             color: rgba(230, 230, 255, 0.95); /* Light info text */
+             font-style: normal;
+             /* Optional: add subtle background */
+            /* background-color: rgba(0, 123, 255, 0.1); */
+            /* border: 1px solid rgba(0, 123, 255, 0.2); */
+            /* border-radius: calc(var(--border-radius) / 2); */
+            /* padding: 8px 12px; */
+            /* backdrop-filter: blur(2px); */
+            /* -webkit-backdrop-filter: blur(2px); */
+         }
+
+
+        /* --- API Key Warning (Glass Style) --- */
+        .api-warning {
+            background: rgba(255, 193, 7, 0.15); /* Transparent warning yellow */
+            backdrop-filter: blur(var(--blur-amount)); /* Match container blur */
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid rgba(255, 193, 7, 0.3); /* Yellowish border */
+            border-left: 5px solid var(--warning-color); /* Strong left border */
+            color: rgba(255, 255, 255, 0.9); /* Light text */
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        .api-warning strong {
+            color: #ffffff; /* White for strong text */
+            font-weight: 600;
+        }
+
+        /* --- Placeholder Text Styling --- */
+        ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+          color: rgba(50, 50, 50, 0.6); /* Darker placeholder */
+          opacity: 1; /* Firefox */
+        }
+
+        :-ms-input-placeholder { /* Internet Explorer 10-11 */
+          color: rgba(50, 50, 50, 0.6);
+        }
+
+        ::-ms-input-placeholder { /* Microsoft Edge */
+          color: rgba(50, 50, 50, 0.6);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Container remains the same -->
+    <div class="container">
+
+        <h1>AI Music Sequence & MIDI Converter</h1>
+
+        <p class="api-warning"><strong>Warning:</strong> Entering your API key directly in the browser is insecure for public applications. This is intended for personal use or local testing only. The key will be visible in network requests.</p>
+
+        <div class="input-group">
+            <label for="apiKey">Enter your Google Gemini API Key:</label>
+            <input type="password" id="apiKey" placeholder="Paste your API key here">
+        </div>
+
+        <div class="input-group">
+            <label for="musicDescription">Describe the music you want:</label>
+            <input type="text" id="musicDescription" value="Simple lead melody in D major" placeholder="e.g., simple lead melody in C major...">
+        </div>
+
+        <div class="button-group">
+             <button id="generateButton">Generate Sequence</button>
+        </div>
+         <div id="status">Enter details and click generate.</div>
+
+
+        <div class="input-group">
+            <label for="inputText">Generated Sequence / Manual Input:</label>
+            <textarea id="inputText" rows="10">
+F#4 - 4, G4 - 2, A4 - 2, space - 1, B4 - 3, A4 - 2, F#4 - 1
+D4 - 4, E4 - 2, F#4 - 2, space - 1, G4 - 3, F#4 - 2, D4 - 1
+A4 - 4, B4 - 2, C#5 - 2, space - 1, D5 - 3, C#5 - 2, A4 - 1
+B4 - 4, G4 - 2, F#4 - 2, space - 1, G4 - 3, F#4 - 2, E4 - 1
+            </textarea>
+        </div>
+
+        <div class="button-group">
+            <button id="convertButton">Download MIDI</button>
+        </div>
+
+    </div> <!-- End container -->
+
+    <!-- JavaScript remains unchanged -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // --- Get references to elements ---
+            const apiKeyInput = document.getElementById("apiKey");
+            const musicDescriptionInput = document.getElementById("musicDescription");
+            const generateButton = document.getElementById("generateButton");
+            const convertButton = document.getElementById("convertButton");
+            const inputTextarea = document.getElementById("inputText");
+            const statusDiv = document.getElementById("status");
+
+            // Library Check
+            if (typeof window.Midi === 'undefined' || typeof window.saveAs === 'undefined') {
+                updateStatus("Error: Required libraries (Midi from Tone.js, saveAs from FileSaver) did not load correctly. Check console.", 'error');
+                console.error("Library Check Failed:", { "window.Midi": typeof window.Midi, "window.saveAs": typeof window.saveAs });
+                if (generateButton) generateButton.disabled = true;
+                if (convertButton) convertButton.disabled = true;
+                return;
+            } else {
+                 console.log("Libraries loaded successfully:", { "window.Midi": typeof window.Midi, "window.saveAs": typeof window.saveAs });
+            }
+
+            // --- Library Setup ---
+            const Midi = window.Midi;
+            const saveAs = window.saveAs;
+
+            // --- Event Listeners ---
+            if (generateButton) {
+                generateButton.addEventListener('click', generateMusicStringViaFetch);
+            }
+            if (convertButton) {
+                convertButton.addEventListener('click', convertToMidi);
+            }
+
+            // --- Gemini API Interaction using Fetch (No changes needed in logic) ---
+            async function generateMusicStringViaFetch() {
+                const apiKey = apiKeyInput.value;
+                const description = musicDescriptionInput.value;
+                const modelName = "gemini-1.5-flash-latest";
+
+                if (!apiKey) {
+                    updateStatus("Error: Please enter your API Key.", 'error');
+                    return;
+                }
+                if (!description.trim()) {
+                    updateStatus("Error: Please describe the music you want to generate.", 'error');
+                    return;
+                }
+
+                updateStatus("Generating sequence...", 'info');
+                inputTextarea.value = "";
+                generateButton.disabled = true;
+                convertButton.disabled = true;
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const prompt = `
+Generate a musical sequence based on the following description: "${description}"
+
+The output format MUST be a single string containing comma-separated 'Key - Length' pairs.
+- 'Key' represents the musical note name including the octave (e.g., C4, D#5, F#3, G4, A5, B4) OR the word 'space' for a rest. Use standard note names. Prefer sharps (#) over flats (b). Explicitly include the octave number (usually 3, 4, or 5).
+- 'Length' represents the duration of the key in sixteenth notes (e.g., 1, 2, 3, 4). A value of 4 means a quarter note, 2 means an eighth note, 1 means a sixteenth note.
+- Separate each 'Key - Length' pair with a comma and a space (e.g., ", ").
+- Do not use note names outside the standard 12-tone chromatic scale (e.g., no H, no double sharps/flats).
+
+Example of the EXACT required format:
+F#4 - 4, G4 - 2, A4 - 2, space - 1, B4 - 3, A4 - 2, F#4 - 1
+
+CRITICAL INSTRUCTIONS:
+- Your entire output MUST consist ONLY of the sequence string in the specified format.
+- Do NOT include ANY introductory text like "Here is the sequence:", "Okay:", "Generated sequence:", etc.
+- Do NOT include ANY explanations, descriptions, comments, or musical analysis.
+- Do NOT use any markdown formatting (like \`\`\`, **, code blocks).
+- Do NOT include any newline characters (\n) within the sequence string itself. The entire output must be one single line of text.
+
+Generate a sequence approximately 8-24 elements long. Output ONLY the sequence string.
+`;
+                const requestBody = {
+                    contents: [{ parts: [{ text: prompt }] }]
+                };
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        let errorDetails = `HTTP error! Status: ${response.status}`;
+                        try {
+                            const errorJson = await response.json();
+                            errorDetails += ` - ${errorJson?.error?.message || JSON.stringify(errorJson)}`;
+                        } catch (e) { errorDetails += ` - ${response.statusText}` }
+                         console.error("API Error Response:", errorDetails);
+                         let userFriendlyError = `Error: API request failed (${response.status}). Check console & API Key.`;
+                         if (response.status === 400) userFriendlyError = "Error: Bad request (400). Check API Key/Prompt/Model."
+                         if (response.status === 403) userFriendlyError = "Error: Permission denied (403). Ensure API Key is valid and enabled for Gemini API."
+                         if (response.status === 429) userFriendlyError = "Error: Quota exceeded (429). Please check your usage limits."
+                        updateStatus(userFriendlyError, 'error');
+                        return;
+                    }
+
+                    const data = await response.json();
+                    let generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+                    let message = "Generation complete.";
+                    let messageClass = 'info';
+
+                    // Content Validation/Cleanup (Improved)
+                    if (!generatedText) {
+                         message = "Warning: Received empty text content from API.";
+                         messageClass = 'warning';
+                    } else {
+                        const originalText = generatedText;
+                        generatedText = generatedText.replace(/```[\s\S]*?```/g, "").replace(/```.*/g, "").trim();
+                        generatedText = generatedText.replace(/^(here is the sequence:|okay, here's the sequence:|generated sequence:|sure, here is the musical sequence:|okay:|here you go:)\s*/i, "").trim();
+                        generatedText = generatedText.replace(/,\s*$/, "").trim();
+                        const isValidFormat = /^[A-G]#?\d\s*-\s*\d+(\s*,\s*([A-G]#?\d|space)\s*-\s*\d+)*$/i.test(generatedText);
+
+                         if (!isValidFormat && generatedText.length > 0) {
+                             message = "Warning: Received potentially invalid format from API even after cleanup. Check the result carefully.";
+                             messageClass = 'warning';
+                             console.warn("Potentially invalid format received:", originalText, "Cleaned:", generatedText);
+                         } else if (generatedText !== originalText && isValidFormat) {
+                             message = "Generation complete. Model included extra text which was automatically removed.";
+                             messageClass = 'info';
+                             console.log("Model output cleaned. Original:", originalText, "Cleaned:", generatedText);
+                         } else if (!generatedText && originalText) {
+                              message = "Warning: Cleanup removed all content. Original API response might have been entirely non-sequence text.";
+                             messageClass = 'warning';
+                         }
+                    }
+
+                    inputTextarea.value = generatedText;
+                    updateStatus(message, messageClass);
+
+                } catch (error) {
+                    console.error("Error calling Gemini API via fetch:", error);
+                    updateStatus(`Error: ${error.message}. Check network connection or console.`, 'error');
+                } finally {
+                    generateButton.disabled = false;
+                    convertButton.disabled = false;
+                }
+            }
+
+
+            // --- MIDI Conversion Logic (No changes needed in logic) ---
+            function convertToMidi() {
+                const text = inputTextarea.value;
+                 updateStatus("", ''); // Clear status
+
+                if (!text.trim()) {
+                    updateStatus("Error: Text area is empty. Generate or paste a sequence first.", 'error');
+                    return;
+                }
+
+                const sequenceString = text.replace(/\n/g, ' ').trim();
+                const notes = sequenceString.split(',')
+                                    .map(note => note.trim())
+                                    .filter(note => note !== '');
+
+                if (notes.length === 0) {
+                    updateStatus("Error: No valid note/space elements found after parsing.", 'error');
+                    return;
+                }
+
+                try {
+                    const midi = new Midi();
+                    const track = midi.addTrack();
+                    let currentTime = 0;
+                    const sixteenthNoteDuration = 0.125;
+
+                    let notesAdded = 0;
+                    let warnings = [];
+
+                    notes.forEach((noteStr, index) => {
+                        const parts = noteStr.split('-').map(p => p.trim());
+                         if (parts.length !== 2) {
+                            warnings.push(`Skipping invalid format at element ${index + 1}: "${noteStr}"`);
+                            return;
+                         }
+
+                        const keyPart = parts[0];
+                        const durationMultiplier = parseInt(parts[1], 10);
+
+                        if (isNaN(durationMultiplier) || durationMultiplier <= 0) {
+                             warnings.push(`Skipping invalid duration at element ${index + 1}: "${noteStr}"`);
+                             return;
+                        }
+
+                        const durationInSeconds = sixteenthNoteDuration * durationMultiplier;
+
+                        if (keyPart.toLowerCase() === "space") {
+                            currentTime += durationInSeconds;
+                        } else {
+                            if (!/^[A-G]#?\d$/.test(keyPart)) {
+                                warnings.push(`Skipping potentially invalid note name format at element ${index + 1}: "${keyPart}"`);
+                                return;
+                            }
+                            try {
+                                track.addNote({
+                                    name: keyPart,
+                                    time: currentTime,
+                                    duration: durationInSeconds,
+                                    velocity: 0.8
+                                });
+                                notesAdded++;
+                                currentTime += durationInSeconds;
+                            } catch (noteError) {
+                                warnings.push(`Skipping unrecognized note name at element ${index + 1}: "${keyPart}" (Error: ${noteError.message})`);
+                                console.warn(`Tone.js note parsing error for "${keyPart}":`, noteError);
+                            }
+                        }
+                    });
+
+                    if (notesAdded === 0) {
+                         let errorMsg = "Error: No valid notes could be converted to MIDI.";
+                         if(warnings.length > 0) {
+                             errorMsg += ` Issues found: ${warnings.join('. ')}`;
+                         }
+                         updateStatus(errorMsg, 'error');
+                         console.warn("MIDI Conversion Failed. Warnings:", warnings);
+                         return;
+                    }
+
+                    const midiArray = midi.toArray();
+                    const midiBlob = new Blob([midiArray], { type: 'audio/midi' });
+                    saveAs(midiBlob, "ai_generated_music.mid");
+
+                    let finalMessage = `MIDI file generated (${notesAdded} notes) and saved as ai_generated_music.mid.`;
+                    let finalMessageClass = 'info';
+
+                    if (warnings.length > 0) {
+                        finalMessage += ` ${warnings.length} elements skipped due to issues (check console).`;
+                        finalMessageClass = 'warning';
+                        updateStatus(finalMessage, finalMessageClass);
+                        console.warn("MIDI Conversion Warnings:", warnings);
+                    } else {
+                         updateStatus(finalMessage, finalMessageClass);
+                    }
+
+                } catch (error) {
+                     console.error("Error during MIDI conversion process:", error);
+                     updateStatus(`Error during MIDI conversion: ${error.message}. Check console.`, 'error');
+                }
+            }
+
+             // --- Helper Function ---
+            function updateStatus(message, type = 'info') {
+                statusDiv.textContent = message;
+                statusDiv.className = type; // Removes previous classes automatically
+            }
+
+        }); // End DOMContentLoaded listener
+    </script>
+</body>
+</html>
