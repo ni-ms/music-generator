@@ -3,562 +3,828 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Music Sequence to MIDI (Glassmorphism)</title>
-    <!-- Load necessary libraries -->
+    <title>AI Piano Roll Sequencer (Editable)</title>
+    <!-- Libraries (same) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js" defer></script>
     <script src="https://unpkg.com/@tonejs/midi@2.0.28/build/Midi.js" defer></script>
     <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js" defer></script>
 
     <style>
-        /* --- Global Styles & Variables --- */
-        :root {
-            --primary-color: #007bff; /* Keep for reference, but might use lighter/transparent versions */
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --error-color: #dc3545;
-            --light-gray: #f8f9fa; /* Less relevant now */
-            --dark-gray: #343a40;
-            --border-radius: 0.5rem; /* Slightly more rounded for glass */
-            --blur-amount: 10px; /* Control blur intensity */
+        /* --- Global Styles, Variables, Body, Container (mostly unchanged) --- */
+        :root { /* ... same color variables ... */
+            --primary-color: #007bff; --secondary-color: #6c757d; --success-color: #28a745;
+            --warning-color: #ffc107; --error-color: #dc3545; --light-gray: #f8f9fa;
+            --dark-gray: #343a40; --border-radius: 0.5rem; --blur-amount: 10px;
         }
-
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
-
-        body {
+        *, *::before, *::after { box-sizing: border-box; }
+        body { /* ... same body style ... */
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            /* --- Vibrant Background for Glass Effect --- */
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            /* Or use a background image: */
-            /* background-image: url('your-background-image.jpg'); */
-            /* background-size: cover; */
-            /* background-position: center; */
-            /* background-attachment: fixed; */
-            color: #ffffff; /* Default text color to white/light */
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center; /* Center vertically too */
-            min-height: 100vh;
+            line-height: 1.6; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff; margin: 0; padding: 20px; display: flex; justify-content: center;
+            align-items: flex-start; min-height: 100vh; overflow-y: auto;
+        }
+        .container { /* ... same container style ... */
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount)); border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            padding: 30px 40px; max-width: 900px; /* Wider for roll */ width: 100%;
+            margin-top: 20px; margin-bottom: 40px;
+        }
+        h1 { /* ... same h1 style ... */
+             text-align: center; color: #ffffff; margin-bottom: 25px; font-weight: 500; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        /* --- Main Container (Glass Effect) --- */
-        .container {
-            background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount)); /* Safari support */
-            border-radius: var(--border-radius);
-            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle light border */
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* Soft shadow, can be adjusted */
-            padding: 30px 40px;
-            max-width: 700px;
-            width: 100%;
-            margin-top: 20px; /* Reset if align-items: center is used */
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            color: #ffffff; /* White text */
-            margin-bottom: 25px;
-            font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add shadow for readability */
-        }
-
-        /* --- Input Groups & Labels --- */
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.85); /* Slightly transparent white */
-        }
-
-        input[type="password"],
-        input[type="text"],
-        textarea {
-            display: block;
-            width: 100%;
-            padding: 10px 12px;
-            font-size: 1rem;
-            line-height: 1.5;
-            color: #212529; /* Dark text inside inputs for readability */
-            background-color: rgba(255, 255, 255, 0.7); /* More opaque white background */
-            background-clip: padding-box;
-            border: 1px solid rgba(255, 255, 255, 0.4); /* Slightly stronger border than container */
-            border-radius: var(--border-radius);
+        /* --- Input Groups, Labels, Text Inputs, Number Input (unchanged) --- */
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; color: rgba(255, 255, 255, 0.85); }
+        input[type="password"], input[type="text"], input[type="number"] { /* ... same input styles ... */
+             display: block; width: 100%; padding: 10px 12px; font-size: 1rem; line-height: 1.5;
+            color: #212529; background-color: rgba(255, 255, 255, 0.7); background-clip: padding-box;
+            border: 1px solid rgba(255, 255, 255, 0.4); border-radius: var(--border-radius);
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out;
         }
-
-        input[type="password"]:focus,
-        input[type="text"]:focus,
-        textarea:focus {
-            background-color: rgba(255, 255, 255, 0.9); /* Slightly more opaque on focus */
-            border-color: rgba(255, 255, 255, 0.7);
-            outline: 0;
-            /* Optional: add a subtle glow */
-            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+        input[type="password"]:focus, input[type="text"]:focus, input[type="number"]:focus { /* ... same focus styles ... */
+            background-color: rgba(255, 255, 255, 0.9); border-color: rgba(255, 255, 255, 0.7);
+            outline: 0; box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
         }
+        input[type="number"] { width: auto; display: inline-block; min-width: 80px; }
+        .bpm-group label { display: inline-block; margin-right: 10px; margin-bottom: 0; vertical-align: middle; }
+        .bpm-group { display: flex; align-items: center; gap: 5px; }
 
-        textarea {
-            resize: vertical;
-            min-height: 120px;
+        /* --- Checkbox Style (unchanged) --- */
+        .checkbox-group { display: flex; align-items: center; margin-bottom: 20px; gap: 10px; }
+        .checkbox-group input[type="checkbox"] { /* ... same checkbox style ... */
+             width: 18px; height: 18px; accent-color: rgba(255, 255, 255, 0.5); cursor: pointer;
         }
+        .checkbox-group label { margin-bottom: 0; cursor: pointer; }
 
-        /* --- Buttons (Subtle Glass) --- */
-        .button-group {
-            margin-top: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            display: inline-block;
-            font-weight: 500; /* Slightly bolder */
-            color: #ffffff; /* White text */
-            text-align: center;
-            vertical-align: middle;
-            cursor: pointer;
-            user-select: none;
-            /* Button Glass Effect */
-            background: rgba(255, 255, 255, 0.1); /* More transparent than inputs */
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            /* backdrop-filter: blur(2px); /* Optional: subtle blur on buttons too */
-            /* -webkit-backdrop-filter: blur(2px); */
-            padding: 10px 18px;
-            font-size: 1rem;
-            line-height: 1.5;
-            border-radius: var(--border-radius);
+        /* --- Buttons (unchanged general style) --- */
+        .button-group { margin-top: 15px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        button { /* ... same button styles ... */
+             display: inline-block; font-weight: 500; color: #ffffff; text-align: center;
+            vertical-align: middle; cursor: pointer; user-select: none;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 10px 18px; font-size: 1rem; line-height: 1.5; border-radius: var(--border-radius);
             transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.1s ease;
-             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Shadow for text */
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
-
-        button:hover {
-            background: rgba(255, 255, 255, 0.2); /* Lighten on hover */
-            border-color: rgba(255, 255, 255, 0.4);
+        button:hover { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.4); }
+        button:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.25); }
+        button:focus { outline: 0; box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.3); }
+        button:disabled { /* ... same disabled style ... */
+             background: rgba(108, 117, 125, 0.3); border-color: rgba(108, 117, 125, 0.4);
+            color: rgba(255, 255, 255, 0.5); cursor: not-allowed; opacity: 0.8; text-shadow: none;
         }
-
-        button:active {
-            transform: scale(0.98); /* Slight press effect */
-            background: rgba(255, 255, 255, 0.25);
+        #generateButton { /* ... same style ... */
+             background: rgba(40, 167, 69, 0.2); border-color: rgba(40, 167, 69, 0.4);
         }
+         #generateButton:hover { background: rgba(40, 167, 69, 0.3); border-color: rgba(40, 167, 69, 0.6); }
+         #generateButton:focus { box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.3); }
 
-        button:focus {
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.3); /* Light focus ring */
+        /* --- Status Area (unchanged) --- */
+        #status { /* ... same status styles ... */
+             margin-top: -10px; margin-bottom: 20px; padding: 5px 0; font-style: italic;
+             min-height: 1.5em; color: rgba(255, 255, 255, 0.8); transition: all 0.3s ease;
         }
-
-        button:disabled {
-            background: rgba(108, 117, 125, 0.3); /* Use transparent secondary color */
-            border-color: rgba(108, 117, 125, 0.4);
-            color: rgba(255, 255, 255, 0.5);
-            cursor: not-allowed;
-            opacity: 0.8; /* Adjust opacity */
-             text-shadow: none;
+        #status.error, #status.warning, #status.info { /* ... same status detail styles ... */
+             border-radius: calc(var(--border-radius) / 2); padding: 8px 12px;
+             font-style: normal; margin-top: 5px; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
         }
+        #status.error { color: var(--error-color); background-color: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.3); font-weight: bold;}
+        #status.warning { color: var(--warning-color); background-color: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.3); }
+        #status.info { color: rgba(230, 230, 255, 0.95); /* Optional background for info */ }
 
-        /* Specific button styles adjusted for glass */
-         #convertButton {
-             /* Override default glass, maybe use success color tint */
-            background: rgba(40, 167, 69, 0.2); /* Transparent Green */
-            border-color: rgba(40, 167, 69, 0.4);
-         }
-
-         #convertButton:hover {
-            background: rgba(40, 167, 69, 0.3);
-            border-color: rgba(40, 167, 69, 0.6);
-         }
-         #convertButton:focus {
-             box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.3); /* Greenish focus ring */
-         }
-
-
-        /* --- Status Area --- */
-        #status {
-            margin-top: -10px;
-            margin-bottom: 20px;
-            padding: 5px 0; /* Reduced padding */
-            font-style: italic;
-            min-height: 1.5em;
-            color: rgba(255, 255, 255, 0.8); /* Light default status */
-            transition: all 0.3s ease; /* Smooth transition for style changes */
+        /* --- API Key Warning (unchanged) --- */
+        .api-warning { /* ... same warning styles ... */
+             background: rgba(255, 193, 7, 0.15); backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount)); border: 1px solid rgba(255, 193, 7, 0.3);
+            border-left: 5px solid var(--warning-color); color: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px; margin-bottom: 25px; border-radius: var(--border-radius); font-size: 0.9rem;
         }
+        .api-warning strong { color: #ffffff; font-weight: 600; }
 
-        #status.error {
-            color: var(--error-color); /* Keep error color strong */
-            background-color: rgba(220, 53, 69, 0.15); /* Subtle red glass background */
-            border: 1px solid rgba(220, 53, 69, 0.3);
-            border-radius: calc(var(--border-radius) / 2);
-            padding: 8px 12px;
-            font-weight: bold;
-            font-style: normal;
-            margin-top: 5px;
-            backdrop-filter: blur(2px); /* Subtle blur */
-             -webkit-backdrop-filter: blur(2px);
-        }
-
-        #status.warning {
-            color: var(--warning-color); /* Keep warning color strong */
-            background-color: rgba(255, 193, 7, 0.15); /* Subtle yellow glass background */
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            border-radius: calc(var(--border-radius) / 2);
-            padding: 8px 12px;
-            font-style: normal;
-            margin-top: 5px;
-            backdrop-filter: blur(2px); /* Subtle blur */
-             -webkit-backdrop-filter: blur(2px);
-        }
-         #status.info {
-             color: rgba(230, 230, 255, 0.95); /* Light info text */
-             font-style: normal;
-             /* Optional: add subtle background */
-            /* background-color: rgba(0, 123, 255, 0.1); */
-            /* border: 1px solid rgba(0, 123, 255, 0.2); */
-            /* border-radius: calc(var(--border-radius) / 2); */
-            /* padding: 8px 12px; */
-            /* backdrop-filter: blur(2px); */
-            /* -webkit-backdrop-filter: blur(2px); */
-         }
-
-
-        /* --- API Key Warning (Glass Style) --- */
-        .api-warning {
-            background: rgba(255, 193, 7, 0.15); /* Transparent warning yellow */
-            backdrop-filter: blur(var(--blur-amount)); /* Match container blur */
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border: 1px solid rgba(255, 193, 7, 0.3); /* Yellowish border */
-            border-left: 5px solid var(--warning-color); /* Strong left border */
-            color: rgba(255, 255, 255, 0.9); /* Light text */
-            padding: 15px 20px;
+        /* --- Piano Roll Styles --- */
+        .piano-roll-container {
+            margin-top: 25px;
             margin-bottom: 25px;
+            display: flex; /* Layout labels and grid side-by-side */
+            background: rgba(0, 0, 0, 0.1);
             border-radius: var(--border-radius);
-            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 500px; /* Increased max height */
         }
 
-        .api-warning strong {
-            color: #ffffff; /* White for strong text */
-            font-weight: 600;
+        /* Note Labels (Vertical Piano Keys simulation) */
+        .note-labels {
+            display: flex;
+            flex-direction: column; /* Stack labels vertically */
+            background: rgba(0, 0, 0, 0.2);
+            padding-right: 5px;
+            overflow: hidden; /* Hide overflow */
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
         }
 
-        /* --- Placeholder Text Styling --- */
-        ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
-          color: rgba(50, 50, 50, 0.6); /* Darker placeholder */
-          opacity: 1; /* Firefox */
+        .note-label {
+            height: 18px; /* Match grid row height */
+            font-size: 0.7em;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
+            padding: 0 5px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Subtle separator */
+        }
+         /* Optional: differentiate black/white keys */
+        .note-label.black-key {
+             background-color: rgba(0, 0, 0, 0.1);
+             /* color: rgba(255, 255, 255, 0.5); */
+         }
+
+
+        /* Grid Scroll Container */
+        .grid-scroll-container {
+            flex-grow: 1; /* Take remaining space */
+            overflow: auto; /* Scrollbars for grid */
+            position: relative; /* For playhead */
         }
 
-        :-ms-input-placeholder { /* Internet Explorer 10-11 */
-          color: rgba(50, 50, 50, 0.6);
+        .piano-roll-grid {
+            display: grid;
+            /* grid-template-columns defined by JS */
+            /* grid-template-rows defined by JS */
+            gap: 1px; /* Smaller gap */
+            min-width: 600px;
+            padding-bottom: 10px; /* Space for horizontal scrollbar */
+             cursor: pointer; /* Indicate cells are clickable */
+             position: relative; /* Needed for absolute positioned playhead */
         }
 
-        ::-ms-input-placeholder { /* Microsoft Edge */
-          color: rgba(50, 50, 50, 0.6);
+        /* Playhead Line */
+         #playhead {
+             position: absolute;
+             top: 0;
+             bottom: 0;
+             width: 2px;
+             background-color: var(--warning-color);
+             opacity: 0.7;
+             left: 0; /* Position updated by JS */
+             pointer-events: none; /* Don't interfere with clicks */
+             display: none; /* Hidden initially */
+             z-index: 10;
+         }
+
+
+        .grid-cell {
+            background-color: rgba(255, 255, 255, 0.05); /* Darker base */
+            /* border: 1px solid rgba(255, 255, 255, 0.1); */ /* Can remove borders for cleaner look */
+            border-right: 1px solid rgba(255, 255, 255, 0.1); /* Vertical step lines */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Horizontal note lines */
+            min-height: 18px; /* Row height */
+            min-width: 25px; /* Column width */
+            transition: background-color 0.1s ease;
         }
+        /* Optional: Lighter background for white key rows */
+        .grid-cell.white-key-row {
+             background-color: rgba(255, 255, 255, 0.08);
+        }
+         /* Optional: Highlight every measure (assuming 4/4 time -> 16 steps) */
+        .grid-cell[data-step^="0"],
+        .grid-cell[data-step^="16"],
+        .grid-cell[data-step^="32"],
+        .grid-cell[data-step^="48"],
+        .grid-cell[data-step^="64"],
+        .grid-cell[data-step^="80"],
+        .grid-cell[data-step^="96"],
+        .grid-cell[data-step^="112"] {
+             border-left: 1px solid rgba(255, 255, 255, 0.3); /* Measure line */
+         }
+
+
+        /* Active Note Styles */
+        .grid-cell.active {
+            background-color: rgba(0, 123, 255, 0.7); /* Melody */
+            border-color: rgba(0, 123, 255, 0.9);
+             border-radius: 2px; /* Slightly rounded notes */
+        }
+        .grid-cell.chord {
+            background-color: rgba(40, 167, 69, 0.65); /* Chord */
+            border-color: rgba(40, 167, 69, 0.8);
+             border-radius: 2px;
+        }
+        /* Style the start of a note block slightly differently (optional) */
+        .grid-cell.note-start {
+            /* Maybe add a left border or slightly darker shade */
+        }
+
+
+        /* --- Controls Area Layout (unchanged) --- */
+        .controls-area {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 20px; margin-top: 20px;
+        }
+
+        /* --- Placeholder Text Styling (unchanged) --- */
+        ::placeholder { color: rgba(50, 50, 50, 0.6); opacity: 1; }
+        :-ms-input-placeholder { color: rgba(50, 50, 50, 0.6); }
+        ::-ms-input-placeholder { color: rgba(50, 50, 50, 0.6); }
 
     </style>
 </head>
 <body>
 
-    <!-- Container remains the same -->
     <div class="container">
 
-        <h1>AI Music Sequence & MIDI Converter</h1>
+        <h1>AI Piano Roll Sequencer</h1>
 
-        <p class="api-warning"><strong>Warning:</strong> Entering your API key directly in the browser is insecure for public applications. This is intended for personal use or local testing only. The key will be visible in network requests.</p>
+        <p class="api-warning"><strong>Warning:</strong> Client-side API keys are insecure.</p>
 
+        <!-- Inputs (API Key, Description, Chords Checkbox) - Unchanged -->
         <div class="input-group">
-            <label for="apiKey">Enter your Google Gemini API Key:</label>
-            <input type="password" id="apiKey" placeholder="Paste your API key here">
-        </div>
-
-        <div class="input-group">
-            <label for="musicDescription">Describe the music you want:</label>
-            <input type="text" id="musicDescription" value="Simple lead melody in D major" placeholder="e.g., simple lead melody in C major...">
-        </div>
+             <label for="apiKey">Google Gemini API Key:</label>
+             <input type="password" id="apiKey" placeholder="Paste API key">
+         </div>
+         <div class="input-group">
+             <label for="musicDescription">Describe the music:</label>
+             <input type="text" id="musicDescription" value="Simple hopeful melody in C major, 4/4 time" placeholder="e.g., sad piano melody in A minor...">
+         </div>
+         <div class="checkbox-group">
+              <input type="checkbox" id="generateChords" name="generateChords">
+              <label for="generateChords">Generate accompanying chords?</label>
+          </div>
 
         <div class="button-group">
              <button id="generateButton">Generate Sequence</button>
         </div>
          <div id="status">Enter details and click generate.</div>
 
-
-        <div class="input-group">
-            <label for="inputText">Generated Sequence / Manual Input:</label>
-            <textarea id="inputText" rows="10">
-F#4 - 4, G4 - 2, A4 - 2, space - 1, B4 - 3, A4 - 2, F#4 - 1
-D4 - 4, E4 - 2, F#4 - 2, space - 1, G4 - 3, F#4 - 2, D4 - 1
-A4 - 4, B4 - 2, C#5 - 2, space - 1, D5 - 3, C#5 - 2, A4 - 1
-B4 - 4, G4 - 2, F#4 - 2, space - 1, G4 - 3, F#4 - 2, E4 - 1
-            </textarea>
+        <!-- Piano Roll Area -->
+        <div class="piano-roll-container">
+            <div id="noteLabels" class="note-labels">
+                <!-- Note labels (piano keys) populated by JS -->
+            </div>
+            <div class="grid-scroll-container">
+                <div id="pianoRollGrid" class="piano-roll-grid">
+                    <!-- Grid cells populated by JS -->
+                    <div style="grid-column: 1 / -1; grid-row: 1 / -1; display:flex; align-items:center; justify-content:center; color: rgba(255,255,255,0.4);">Piano roll will appear here...</div>
+                </div>
+                <!-- Playhead element -->
+                <div id="playhead"></div>
+            </div>
         </div>
 
-        <div class="button-group">
-            <button id="convertButton">Download MIDI</button>
+
+        <!-- Playback, BPM, and Download Controls -->
+        <div class="controls-area">
+            <div class="button-group">
+                <button id="playButton" disabled>Play</button>
+                <button id="stopButton" disabled>Stop</button>
+            </div>
+
+             <div class="bpm-group">
+                 <label for="bpmInput">BPM:</label>
+                 <input type="number" id="bpmInput" value="120" min="30" max="300" step="1">
+             </div>
+
+            <div class="button-group">
+                <button id="downloadMidiButton" disabled>Download MIDI</button>
+            </div>
         </div>
 
     </div> <!-- End container -->
 
-    <!-- JavaScript remains unchanged -->
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            // --- Get references to elements ---
+            // --- Global References ---
             const apiKeyInput = document.getElementById("apiKey");
             const musicDescriptionInput = document.getElementById("musicDescription");
+            const generateChordsCheckbox = document.getElementById("generateChords");
             const generateButton = document.getElementById("generateButton");
-            const convertButton = document.getElementById("convertButton");
-            const inputTextarea = document.getElementById("inputText");
+            const playButton = document.getElementById("playButton");
+            const stopButton = document.getElementById("stopButton");
+            const downloadMidiButton = document.getElementById("downloadMidiButton");
             const statusDiv = document.getElementById("status");
+            const noteLabelsDiv = document.getElementById("noteLabels"); // For vertical labels
+            const pianoRollGridDiv = document.getElementById("pianoRollGrid");
+            const bpmInput = document.getElementById("bpmInput");
+            const playheadDiv = document.getElementById("playhead"); // Playhead line
 
-            // Library Check
-            if (typeof window.Midi === 'undefined' || typeof window.saveAs === 'undefined') {
-                updateStatus("Error: Required libraries (Midi from Tone.js, saveAs from FileSaver) did not load correctly. Check console.", 'error');
-                console.error("Library Check Failed:", { "window.Midi": typeof window.Midi, "window.saveAs": typeof window.saveAs });
-                if (generateButton) generateButton.disabled = true;
-                if (convertButton) convertButton.disabled = true;
-                return;
-            } else {
-                 console.log("Libraries loaded successfully:", { "window.Midi": typeof window.Midi, "window.saveAs": typeof window.saveAs });
-            }
+            let Tone = null;
+            let Midi = null;
+            let saveAs = null;
+            let synth = null;
+            let currentSequenceData = { melody: [], chords: [], maxEndTimeStep: 0, maxEndTimeSec: 0 };
+            let currentPlaybackPart = null;
+            let currentBpm = 120;
+            let playheadUpdateId = null; // For requestAnimationFrame
 
-            // --- Library Setup ---
-            const Midi = window.Midi;
-            const saveAs = window.saveAs;
+            // Define the pitch range for the piano roll (Highest to Lowest)
+            const PITCH_RANGE = [
+                "C6", "B5", "A#5", "A5", "G#5", "G5", "F#5", "F5", "E5", "D#5", "D5", "C#5",
+                "C5", "B4", "A#4", "A4", "G#4", "G4", "F#4", "F4", "E4", "D#4", "D4", "C#4",
+                "C4", "B3", "A#3", "A3", "G#3", "G3", "F#3", "F3", "E3", "D#3", "D3", "C#3",
+                "C3", "B2", "A#2", "A2", "G#2", "G2", "F#2", "F2", "E2", "D#2", "D2", "C#2", "C2"
+            ]; // Keep order for row index mapping
 
-            // --- Event Listeners ---
-            if (generateButton) {
-                generateButton.addEventListener('click', generateMusicStringViaFetch);
-            }
-            if (convertButton) {
-                convertButton.addEventListener('click', convertToMidi);
-            }
-
-            // --- Gemini API Interaction using Fetch (No changes needed in logic) ---
-            async function generateMusicStringViaFetch() {
-                const apiKey = apiKeyInput.value;
-                const description = musicDescriptionInput.value;
-                const modelName = "gemini-1.5-flash-latest";
-
-                if (!apiKey) {
-                    updateStatus("Error: Please enter your API Key.", 'error');
-                    return;
+            // --- Initialization ---
+            function initializeApp() {
+                if (typeof window.Tone === 'undefined' || typeof window.Midi === 'undefined' || typeof window.saveAs === 'undefined') {
+                    updateStatus("Error: Required libraries did not load.", 'error');
+                    disableAllControls(); bpmInput.disabled = true; return;
                 }
-                if (!description.trim()) {
-                    updateStatus("Error: Please describe the music you want to generate.", 'error');
-                    return;
+                 console.log("Libraries loaded.");
+                 Tone = window.Tone; Midi = window.Midi; saveAs = window.saveAs;
+
+                 synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'fmsine' },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.5 }, // Faster attack, slightly shorter release
+                    volume: -8
+                 }).toDestination();
+
+                 currentBpm = parseInt(bpmInput.value, 10) || 120;
+                 Tone.Transport.bpm.value = currentBpm;
+
+                 bindEventListeners();
+                 updateStatus("Ready. Describe music and generate.", 'info');
+                 createPianoRollGrid(32); // Create initial empty grid
+            }
+
+            function bindEventListeners() {
+                generateButton.addEventListener('click', handleGenerateClick);
+                playButton.addEventListener('click', handlePlayClick);
+                stopButton.addEventListener('click', handleStopClick);
+                downloadMidiButton.addEventListener('click', handleDownloadMidiClick);
+                bpmInput.addEventListener('input', handleBpmChange);
+                bpmInput.addEventListener('change', handleBpmChange);
+                // NEW: Event listener for editing clicks on the grid container
+                pianoRollGridDiv.addEventListener('click', handleGridClick);
+            }
+
+            function disableAllControls(keepGenerateEnabled = false) { /* ... same ... */
+                 generateButton.disabled = !keepGenerateEnabled;
+                 playButton.disabled = true;
+                 stopButton.disabled = true;
+                 downloadMidiButton.disabled = true;
+            }
+             function enablePlaybackControls() { /* ... same ... */
+                 playButton.disabled = false;
+                 downloadMidiButton.disabled = false;
+                 // Stop button enabled dynamically
+             }
+
+            // --- UI Update Functions ---
+            function updateStatus(message, type = 'info') { /* ... same ... */
+                 statusDiv.textContent = message;
+                 statusDiv.className = type;
+            }
+
+            function createPianoRollGrid(steps, notePitches = PITCH_RANGE) {
+                pianoRollGridDiv.innerHTML = ''; // Clear previous grid
+                noteLabelsDiv.innerHTML = ''; // Clear note labels
+
+                // Grid columns: Time steps
+                pianoRollGridDiv.style.gridTemplateColumns = `repeat(${steps}, minmax(25px, 1fr))`;
+                // Grid rows: Pitches
+                pianoRollGridDiv.style.gridTemplateRows = `repeat(${notePitches.length}, 18px)`;
+
+                notePitches.forEach((noteName, rowIndex) => {
+                    // Add Note Label (Vertical "Piano Key")
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'note-label';
+                    labelDiv.textContent = noteName;
+                     // Add class for black/white key styling
+                    if (noteName.includes('#') || noteName.includes('b')) {
+                        labelDiv.classList.add('black-key');
+                    }
+                    noteLabelsDiv.appendChild(labelDiv);
+
+                    // Add Grid Cells for this pitch row
+                    for (let step = 0; step < steps; step++) {
+                        const cellDiv = document.createElement('div');
+                        cellDiv.className = 'grid-cell';
+                        cellDiv.dataset.note = noteName; // Pitch (Y-axis)
+                        cellDiv.dataset.step = step;     // Time (X-axis)
+                        cellDiv.style.gridColumn = `${step + 1} / span 1`; // CSS grid columns are 1-indexed
+                        cellDiv.style.gridRow = `${rowIndex + 1} / span 1`; // CSS grid rows are 1-indexed
+                         // Add class for white key row styling
+                         if (!noteName.includes('#') && !noteName.includes('b')) {
+                            cellDiv.classList.add('white-key-row');
+                         }
+                        pianoRollGridDiv.appendChild(cellDiv);
+                    }
+                });
+                console.log(`Piano roll grid created/updated with ${steps} steps and ${notePitches.length} pitches.`);
+                 currentSequenceData.maxEndTimeStep = Math.max(currentSequenceData.maxEndTimeStep, steps); // Update max steps if needed
+            }
+
+            function updatePianoRollUI() {
+                const data = currentSequenceData;
+                // Ensure grid has enough steps
+                const requiredSteps = data.maxEndTimeStep > 0 ? data.maxEndTimeStep : 32;
+                const currentGridSteps = parseInt((pianoRollGridDiv.style.gridTemplateColumns.match(/repeat\((\d+)/) || [])[1] || '0', 10);
+
+                if (currentGridSteps < requiredSteps) {
+                    // If grid needs more steps, recreate it
+                    createPianoRollGrid(requiredSteps);
+                } else if (pianoRollGridDiv.children.length === 1 && pianoRollGridDiv.children[0].textContent.includes('Piano roll will appear here')) {
+                    // If grid exists but is the placeholder, ensure it's the right size (handles initial load case better)
+                     createPianoRollGrid(requiredSteps);
                 }
 
-                updateStatus("Generating sequence...", 'info');
-                inputTextarea.value = "";
-                generateButton.disabled = true;
-                convertButton.disabled = true;
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                const prompt = `
-Generate a musical sequence based on the following description: "${description}"
+                // Reset all cells visual state first
+                pianoRollGridDiv.querySelectorAll('.grid-cell').forEach(cell => {
+                    cell.classList.remove('active', 'chord', 'note-start');
+                });
 
-The output format MUST be a single string containing comma-separated 'Key - Length' pairs.
-- 'Key' represents the musical note name including the octave (e.g., C4, D#5, F#3, G4, A5, B4) OR the word 'space' for a rest. Use standard note names. Prefer sharps (#) over flats (b). Explicitly include the octave number (usually 3, 4, or 5).
-- 'Length' represents the duration of the key in sixteenth notes (e.g., 1, 2, 3, 4). A value of 4 means a quarter note, 2 means an eighth note, 1 means a sixteenth note.
-- Separate each 'Key - Length' pair with a comma and a space (e.g., ", ").
-- Do not use note names outside the standard 12-tone chromatic scale (e.g., no H, no double sharps/flats).
+                // Function to activate cells for a list of notes
+                const activateNotes = (notes, className) => {
+                    notes.forEach(note => {
+                        // We still need the note name to find the cell via data-note
+                        // No need for noteRowIndex for selection anymore, but keep check for range warnings
+                        const noteRowIndexCheck = PITCH_RANGE.indexOf(note.note);
+                         if (noteRowIndexCheck === -1) {
+                             if (!/^[A-G](#|b)?\d$/.test(note.note)) {
+                                console.warn(`Cannot visualize "${note.note}" on piano roll: Not a standard note name in PITCH_RANGE.`);
+                             } else {
+                                 console.warn(`Note "${note.note}" is outside the defined PITCH_RANGE for visualization.`);
+                             }
+                             return; // Skip this note/chord for visualization
+                        }
 
-Example of the EXACT required format:
-F#4 - 4, G4 - 2, A4 - 2, space - 1, B4 - 3, A4 - 2, F#4 - 1
+                        for (let step = note.startStep; step < note.endStep; step++) {
+                            // *** THE CORRECTED SELECTOR ***
+                            const cell = pianoRollGridDiv.querySelector(`.grid-cell[data-note="${note.note}"][data-step="${step}"]`);
 
-CRITICAL INSTRUCTIONS:
-- Your entire output MUST consist ONLY of the sequence string in the specified format.
-- Do NOT include ANY introductory text like "Here is the sequence:", "Okay:", "Generated sequence:", etc.
-- Do NOT include ANY explanations, descriptions, comments, or musical analysis.
-- Do NOT use any markdown formatting (like \`\`\`, **, code blocks).
-- Do NOT include any newline characters (\n) within the sequence string itself. The entire output must be one single line of text.
-
-Generate a sequence approximately 8-24 elements long. Output ONLY the sequence string.
-`;
-                const requestBody = {
-                    contents: [{ parts: [{ text: prompt }] }]
+                            if (cell) {
+                                cell.classList.add(className);
+                                if (step === note.startStep) {
+                                    cell.classList.add('note-start'); // Mark the beginning of the note block
+                                }
+                            } else {
+                                // This error is less likely now, but keep for debugging
+                                console.error(`Cell not found for note ${note.note} at step ${step}. Grid issue?`);
+                            }
+                        }
+                    });
                 };
 
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
-                    });
+                // Log the data being used to update the UI for debugging
+                // console.log("Updating UI with data:", JSON.stringify(data, null, 2));
 
-                    if (!response.ok) {
-                        let errorDetails = `HTTP error! Status: ${response.status}`;
-                        try {
-                            const errorJson = await response.json();
-                            errorDetails += ` - ${errorJson?.error?.message || JSON.stringify(errorJson)}`;
-                        } catch (e) { errorDetails += ` - ${response.statusText}` }
-                         console.error("API Error Response:", errorDetails);
-                         let userFriendlyError = `Error: API request failed (${response.status}). Check console & API Key.`;
-                         if (response.status === 400) userFriendlyError = "Error: Bad request (400). Check API Key/Prompt/Model."
-                         if (response.status === 403) userFriendlyError = "Error: Permission denied (403). Ensure API Key is valid and enabled for Gemini API."
-                         if (response.status === 429) userFriendlyError = "Error: Quota exceeded (429). Please check your usage limits."
-                        updateStatus(userFriendlyError, 'error');
+                activateNotes(data.melody, 'active');
+                activateNotes(data.chords, 'chord'); // Chords shown with 'chord' style if they are individual notes
+            }
+
+
+            // --- BPM Handling ---
+             function handleBpmChange() { /* ... (same as before) ... */
+                 const newBpm = parseInt(bpmInput.value, 10);
+                 if (isNaN(newBpm) || newBpm < parseInt(bpmInput.min, 10) || newBpm > parseInt(bpmInput.max, 10)) {
+                     bpmInput.value = currentBpm; return;
+                 }
+                 if (newBpm !== currentBpm) {
+                     currentBpm = newBpm; Tone.Transport.bpm.value = currentBpm;
+                     console.log(`BPM updated to ${currentBpm}`);
+                     calculateTimingsInSeconds();
+                     // No need to reprepare playback immediately, happens on Play click or MIDI download
+                     // if (!playButton.disabled && currentSequenceData.melody.length > 0) { preparePlayback(); }
+                     updateStatus(`BPM set to ${currentBpm}.`, 'info');
+                 }
+             }
+
+            // --- API Interaction ---
+            async function handleGenerateClick() { /* ... (mostly same, uses same prompt) ... */
+                 if (Tone.context.state !== 'running') { await Tone.start(); console.log('AudioContext started'); }
+                 const apiKey = apiKeyInput.value;
+                 const description = musicDescriptionInput.value;
+                 if (!apiKey) return updateStatus("Error: API Key missing.", 'error');
+                 if (!description.trim()) return updateStatus("Error: Music description missing.", 'error');
+
+                 updateStatus("Generating sequence...", 'info');
+                 disableAllControls(false);
+                 clearSequenceData(); // Clear previous data
+                 updatePianoRollUI(); // Clear UI grid
+
+                 // --- Prompt (Remains the same - asking for Key - StartTime - EndTime) ---
+                 const generateChords = generateChordsCheckbox.checked;
+                 let prompt = `Generate a musical sequence based on the description: "${description}"\n\nOutput Format Rules:\n1. Plain text only.\n2. Use 'Key - StartTime - EndTime' triplets separated by comma-space (e.g., ", ").\n3. 'Key' is note name + octave (C4, F#5) or 'space'. Use sharps (#).\n4. 'StartTime' is the 16th note step index where the note BEGINS (0-indexed integer).\n5. 'EndTime' is the 16th note step index where the note ENDS (exclusive). EndTime MUST be > StartTime.\n6. Example: "C4 - 0 - 4" means C4 plays for steps 0, 1, 2, 3.\n7. Melody MUST be on a single line prefixed with "Melody: ".\n8. Aim for roughly 4 to 8 measures total length (end time around 64 to 128).`;
+                 if (generateChords) { prompt += `\n9. Generate simple accompanying chords.\n10. Output chords on a SEPARATE line prefixed with "Chords: ".\n11. Use the same 'Key - StartTime - EndTime' format. 'Key' can be a chord name (Cmaj, Gm) or root note (C3). Align chords rhythmically.\n12. If no chords generated, output ONLY the "Melody: " line.`; }
+                 else { prompt += `\n9. Do NOT generate chords. Output ONLY the "Melody: " line.`; }
+                 prompt += `\n\nCRITICAL:\n- Adhere STRICTLY to format. Integers for StartTime/EndTime. EndTime > StartTime.\n- NO other text, explanations, markdown, or introductions.\n- Example (Melody Only):\nMelody: C4 - 0 - 4, E4 - 4 - 8, G4 - 8 - 12, C5 - 12 - 16\n- Example (Melody & Chords):\nMelody: C4 - 0 - 4, E4 - 4 - 8, G4 - 8 - 12, C5 - 12 - 16\nChords: C3 - 0 - 8, G3 - 8 - 16`;
+                 // --- End Prompt ---
+
+                 const modelName = "gemini-1.5-flash-latest";
+                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                 const requestBody = { contents: [{ parts: [{ text: prompt }] }] };
+
+                 try {
+                     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+                     if (!response.ok) { /* ... Error handling ... */ throw new Error(`HTTP error! Status: ${response.status}`); }
+                     const data = await response.json();
+                     const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+                     if (!generatedText) { throw new Error("Received empty content from API."); }
+
+                     parseGeneratedText(generatedText);
+                     if (currentSequenceData.melody.length === 0) { throw new Error("Failed to parse valid melody from API response."); }
+
+                     calculateTimingsInSeconds();
+                     updatePianoRollUI(); // Update grid display
+                     // preparePlayback(); // Don't prepare immediately, wait for Play click
+                     enablePlaybackControls();
+
+                     let statusMsg = `Generated ${currentSequenceData.melody.length} melody notes`;
+                     if(currentSequenceData.chords.length > 0) statusMsg += ` and ${currentSequenceData.chords.length} chord elements`;
+                     statusMsg += `. Max step: ${currentSequenceData.maxEndTimeStep}. Ready.`;
+                     updateStatus(statusMsg, 'info');
+
+                 } catch (error) {
+                     console.error("Error during generation or parsing:", error);
+                     updateStatus(`Error: ${error.message}.`, 'error');
+                     clearSequenceData(); updatePianoRollUI();
+                 } finally {
+                      generateButton.disabled = false;
+                 }
+            }
+
+            // --- Parsing & Timing Calculation Logic ---
+            function clearSequenceData() { /* ... same ... */
+                 currentSequenceData = { melody: [], chords: [], maxEndTimeStep: 0, maxEndTimeSec: 0 };
+             }
+            function parseGeneratedText(text) { /* ... (same as before - parses Key - Start - End) ... */
+                 clearSequenceData();
+                 const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                 let melodyLine = "", chordLine = "", maxStep = 0;
+                 lines.forEach(line => {
+                     if (line.toLowerCase().startsWith("melody:")) melodyLine = line.substring("melody:".length).trim();
+                     else if (line.toLowerCase().startsWith("chords:")) chordLine = line.substring("chords:".length).trim();
+                 });
+                 if (!melodyLine) throw new Error("No 'Melody:' line found.");
+
+                 const parseLine = (lineStr) => { /* ... same logic ... */
+                     const notes = []; let lineMaxStep = 0;
+                     const elements = lineStr.split(',').map(e => e.trim()).filter(e => e);
+                     elements.forEach((el) => {
+                         const parts = el.split('-').map(p => p.trim());
+                         if (parts.length !== 3) { console.warn(`Skipping invalid element: "${el}"`); return; }
+                         const key = parts[0]; const startStep = parseInt(parts[1], 10); const endStep = parseInt(parts[2], 10);
+                         if (key.toLowerCase() === "space") return;
+                         if (isNaN(startStep) || isNaN(endStep) || startStep < 0 || endStep <= startStep) { console.warn(`Skipping invalid times: "${el}"`); return; }
+                         if (!/^[A-G](#|b)?\d{1,2}(\w*)?$/i.test(key) && !/^[A-G](#|b)?(maj|min|dim|aug|sus|m|M)?\d?$/.test(key)) { console.warn(`Potentially invalid key: "${key}"`); }
+                         const durationSteps = endStep - startStep;
+                         notes.push({ note: key, startStep: startStep, endStep: endStep, durationSteps: durationSteps, startSec: 0, durationSec: 0 });
+                         lineMaxStep = Math.max(lineMaxStep, endStep);
+                     });
+                     return { notes, maxStep: lineMaxStep };
+                 };
+
+                 const melodyResult = parseLine(melodyLine);
+                 currentSequenceData.melody = melodyResult.notes;
+                 maxStep = Math.max(maxStep, melodyResult.maxStep);
+                 if (chordLine && generateChordsCheckbox.checked) {
+                     const chordResult = parseLine(chordLine);
+                     currentSequenceData.chords = chordResult.notes;
+                     maxStep = Math.max(maxStep, chordResult.maxStep);
+                 }
+                 currentSequenceData.maxEndTimeStep = maxStep;
+                 console.log("Parsed Step Data:", currentSequenceData);
+            }
+             function calculateTimingsInSeconds() { /* ... (same as before) ... */
+                 if (!Tone) return;
+                 const bpm = currentBpm; const sixteenthNoteSecs = (60 / bpm) / 4; let maxSec = 0;
+                 const processList = (noteList) => {
+                     noteList.forEach(note => {
+                         note.startSec = note.startStep * sixteenthNoteSecs;
+                         note.durationSec = note.durationSteps * sixteenthNoteSecs;
+                         maxSec = Math.max(maxSec, note.startSec + note.durationSec);
+                     });
+                 };
+                 processList(currentSequenceData.melody); processList(currentSequenceData.chords);
+                 currentSequenceData.maxEndTimeSec = maxSec;
+                 console.log(`Calculated second timings. Max duration: ${maxSec.toFixed(2)}s`);
+             }
+
+
+            // --- Playback Logic ---
+             function preparePlayback() { /* ... (same as before - uses startSec/durationSec) ... */
+                 if (!Tone || !synth) return;
+                 if (currentPlaybackPart) { currentPlaybackPart.dispose(); currentPlaybackPart = null; }
+                 Tone.Transport.stop(); Tone.Transport.cancel(); // Ensure clean slate
+
+                 const allNotes = [...currentSequenceData.melody, ...currentSequenceData.chords];
+                 if (allNotes.length === 0) return;
+
+                 calculateTimingsInSeconds(); // Ensure timings match current BPM just before scheduling
+
+                 const events = allNotes.map(note => ({
+                     time: note.startSec, note: note.note, duration: note.durationSec,
+                     velocity: note.note.includes("maj") || note.note.includes("min") ? 0.6 : 0.8
+                 }));
+
+                 currentPlaybackPart = new Tone.Part((time, value) => {
+                     try { synth.triggerAttackRelease(value.note, value.duration, time, value.velocity); }
+                     catch (e) { console.warn(`Playback error: ${e.message} for note ${value.note}`); }
+                 }, events).start(0);
+
+                 Tone.Transport.loop = true;
+                 Tone.Transport.loopEnd = currentSequenceData.maxEndTimeSec > 0 ? currentSequenceData.maxEndTimeSec : Tone.Time("4m").toSeconds();
+                 console.log(`Playback prepared. Loop end: ${Tone.Transport.loopEnd.toFixed(2)}s`);
+             }
+
+             function startPlayhead() {
+                 stopPlayhead(); // Clear any previous animation frame request
+                 playheadDiv.style.display = 'block';
+                 const scrollContainer = document.querySelector('.grid-scroll-container');
+                 const gridWidth = pianoRollGridDiv.scrollWidth; // Total width of the grid content
+                 const gridStartTime = Tone.Transport.seconds; // Get start time accurately
+
+                 function updatePlayheadPosition() {
+                    if (Tone.Transport.state !== 'started') {
+                        stopPlayhead();
                         return;
                     }
+                    const elapsed = Tone.Transport.seconds - gridStartTime;
+                    const loopDuration = Tone.Transport.loopEnd;
+                    const currentPositionInLoop = elapsed % loopDuration;
+                    const progress = currentPositionInLoop / loopDuration;
 
-                    const data = await response.json();
-                    let generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+                    const playheadX = progress * gridWidth;
+                    playheadDiv.style.left = `${playheadX}px`;
 
-                    let message = "Generation complete.";
-                    let messageClass = 'info';
-
-                    // Content Validation/Cleanup (Improved)
-                    if (!generatedText) {
-                         message = "Warning: Received empty text content from API.";
-                         messageClass = 'warning';
-                    } else {
-                        const originalText = generatedText;
-                        generatedText = generatedText.replace(/```[\s\S]*?```/g, "").replace(/```.*/g, "").trim();
-                        generatedText = generatedText.replace(/^(here is the sequence:|okay, here's the sequence:|generated sequence:|sure, here is the musical sequence:|okay:|here you go:)\s*/i, "").trim();
-                        generatedText = generatedText.replace(/,\s*$/, "").trim();
-                        const isValidFormat = /^[A-G]#?\d\s*-\s*\d+(\s*,\s*([A-G]#?\d|space)\s*-\s*\d+)*$/i.test(generatedText);
-
-                         if (!isValidFormat && generatedText.length > 0) {
-                             message = "Warning: Received potentially invalid format from API even after cleanup. Check the result carefully.";
-                             messageClass = 'warning';
-                             console.warn("Potentially invalid format received:", originalText, "Cleaned:", generatedText);
-                         } else if (generatedText !== originalText && isValidFormat) {
-                             message = "Generation complete. Model included extra text which was automatically removed.";
-                             messageClass = 'info';
-                             console.log("Model output cleaned. Original:", originalText, "Cleaned:", generatedText);
-                         } else if (!generatedText && originalText) {
-                              message = "Warning: Cleanup removed all content. Original API response might have been entirely non-sequence text.";
-                             messageClass = 'warning';
-                         }
+                    // Auto-scroll
+                    const containerWidth = scrollContainer.clientWidth;
+                    const scrollLeft = scrollContainer.scrollLeft;
+                    // Scroll if playhead is near the edge (e.g., last 20% or first 10%)
+                    if (playheadX > scrollLeft + containerWidth * 0.8 || playheadX < scrollLeft + containerWidth * 0.1) {
+                         scrollContainer.scrollLeft = playheadX - containerWidth / 2; // Center playhead
                     }
 
-                    inputTextarea.value = generatedText;
-                    updateStatus(message, messageClass);
 
-                } catch (error) {
-                    console.error("Error calling Gemini API via fetch:", error);
-                    updateStatus(`Error: ${error.message}. Check network connection or console.`, 'error');
-                } finally {
-                    generateButton.disabled = false;
-                    convertButton.disabled = false;
-                }
+                    playheadUpdateId = requestAnimationFrame(updatePlayheadPosition);
+                 }
+                 playheadUpdateId = requestAnimationFrame(updatePlayheadPosition);
+             }
+
+             function stopPlayhead() {
+                 if (playheadUpdateId) {
+                     cancelAnimationFrame(playheadUpdateId);
+                     playheadUpdateId = null;
+                 }
+                 playheadDiv.style.display = 'none';
+                 playheadDiv.style.left = '0px'; // Reset position
+             }
+
+
+            async function handlePlayClick() { /* ... (similar, but calls startPlayhead) ... */
+                 if (Tone.context.state !== 'running') { await Tone.start(); }
+                 if (currentSequenceData.melody.length === 0) return updateStatus("Generate or add notes first.", 'warning');
+                 if (Tone.Transport.state === 'started') return;
+
+                 preparePlayback(); // Prepare with latest data and BPM
+                 if (!currentPlaybackPart) { // Check if preparation failed (no notes?)
+                     updateStatus("No valid notes to play.", 'warning');
+                     return;
+                 }
+
+                 updateStatus("Playing...", 'info');
+                 Tone.Transport.start("+0.1"); // Start slightly ahead
+                 startPlayhead(); // Start visual playhead
+                 stopButton.disabled = false;
+                 playButton.disabled = true;
             }
 
+            function handleStopClick() { /* ... (Ensures releaseAll is called) ... */
+                 if (Tone.Transport.state !== 'stopped') {
+                     Tone.Transport.stop();
+                     Tone.Transport.cancel(); // Clear scheduled Tone events
+                     if(synth) synth.releaseAll(); // Ensure all synth voices are released
+                     console.log("Transport stopped, events cancelled, synth released.");
+                     stopPlayhead(); // Stop visual playhead
+                     updateStatus("Stopped.", 'info');
+                     stopButton.disabled = true;
+                     playButton.disabled = (currentSequenceData.melody.length === 0);
+                 }
+            }
 
-            // --- MIDI Conversion Logic (No changes needed in logic) ---
-            function convertToMidi() {
-                const text = inputTextarea.value;
-                 updateStatus("", ''); // Clear status
+            // --- MIDI Generation ---
+            function handleDownloadMidiClick() { /* ... (same as before) ... */
+                 if (currentSequenceData.melody.length === 0) return updateStatus("Generate or add notes first.", 'warning');
+                 calculateTimingsInSeconds(); // Ensure seconds match current BPM
+                 updateStatus("Generating MIDI...", 'info');
 
-                if (!text.trim()) {
-                    updateStatus("Error: Text area is empty. Generate or paste a sequence first.", 'error');
-                    return;
-                }
+                 try {
+                     const midi = new Midi();
+                     midi.header.setTempo(currentBpm);
+                     console.log(`MIDI Tempo set to ${currentBpm}`);
 
-                const sequenceString = text.replace(/\n/g, ' ').trim();
-                const notes = sequenceString.split(',')
-                                    .map(note => note.trim())
-                                    .filter(note => note !== '');
-
-                if (notes.length === 0) {
-                    updateStatus("Error: No valid note/space elements found after parsing.", 'error');
-                    return;
-                }
-
-                try {
-                    const midi = new Midi();
-                    const track = midi.addTrack();
-                    let currentTime = 0;
-                    const sixteenthNoteDuration = 0.125;
-
-                    let notesAdded = 0;
-                    let warnings = [];
-
-                    notes.forEach((noteStr, index) => {
-                        const parts = noteStr.split('-').map(p => p.trim());
-                         if (parts.length !== 2) {
-                            warnings.push(`Skipping invalid format at element ${index + 1}: "${noteStr}"`);
-                            return;
+                     const addTrack = (notes, name, velocity) => {
+                         if (notes.length > 0) {
+                            const track = midi.addTrack(); track.name = name;
+                            notes.forEach(note => {
+                                let noteNameToAdd = note.note;
+                                if (!/^[A-G](#|b)?\d$/.test(noteNameToAdd)) { // Handle non-standard note names (like Cmaj)
+                                    console.warn(`MIDI: Treating "${noteNameToAdd}" as potentially unplayable name.`);
+                                    // Skip or try adding anyway? Let's try adding, might work in some sequencers.
+                                }
+                                try { track.addNote({ name: noteNameToAdd, time: note.startSec, duration: note.durationSec, velocity: velocity }); }
+                                catch(e) { console.warn(`Skipping MIDI note: ${noteNameToAdd} - ${e.message}`); }
+                            });
                          }
+                     };
 
-                        const keyPart = parts[0];
-                        const durationMultiplier = parseInt(parts[1], 10);
+                     addTrack(currentSequenceData.melody, "Melody", 0.8);
+                     addTrack(currentSequenceData.chords, "Chords", 0.6); // Add chords if they exist
 
-                        if (isNaN(durationMultiplier) || durationMultiplier <= 0) {
-                             warnings.push(`Skipping invalid duration at element ${index + 1}: "${noteStr}"`);
-                             return;
-                        }
+                     if (midi.tracks.length === 0 || midi.tracks.every(t => t.notes.length === 0)) { throw new Error("No valid notes added to MIDI."); }
 
-                        const durationInSeconds = sixteenthNoteDuration * durationMultiplier;
+                     const midiArray = midi.toArray();
+                     const midiBlob = new Blob([midiArray], { type: 'audio/midi' });
+                     saveAs(midiBlob, `ai_music_${currentBpm}bpm.mid`);
+                     updateStatus(`MIDI file saved (at ${currentBpm} BPM).`, 'info');
 
-                        if (keyPart.toLowerCase() === "space") {
-                            currentTime += durationInSeconds;
-                        } else {
-                            if (!/^[A-G]#?\d$/.test(keyPart)) {
-                                warnings.push(`Skipping potentially invalid note name format at element ${index + 1}: "${keyPart}"`);
-                                return;
-                            }
-                            try {
-                                track.addNote({
-                                    name: keyPart,
-                                    time: currentTime,
-                                    duration: durationInSeconds,
-                                    velocity: 0.8
-                                });
-                                notesAdded++;
-                                currentTime += durationInSeconds;
-                            } catch (noteError) {
-                                warnings.push(`Skipping unrecognized note name at element ${index + 1}: "${keyPart}" (Error: ${noteError.message})`);
-                                console.warn(`Tone.js note parsing error for "${keyPart}":`, noteError);
-                            }
-                        }
-                    });
-
-                    if (notesAdded === 0) {
-                         let errorMsg = "Error: No valid notes could be converted to MIDI.";
-                         if(warnings.length > 0) {
-                             errorMsg += ` Issues found: ${warnings.join('. ')}`;
-                         }
-                         updateStatus(errorMsg, 'error');
-                         console.warn("MIDI Conversion Failed. Warnings:", warnings);
-                         return;
-                    }
-
-                    const midiArray = midi.toArray();
-                    const midiBlob = new Blob([midiArray], { type: 'audio/midi' });
-                    saveAs(midiBlob, "ai_generated_music.mid");
-
-                    let finalMessage = `MIDI file generated (${notesAdded} notes) and saved as ai_generated_music.mid.`;
-                    let finalMessageClass = 'info';
-
-                    if (warnings.length > 0) {
-                        finalMessage += ` ${warnings.length} elements skipped due to issues (check console).`;
-                        finalMessageClass = 'warning';
-                        updateStatus(finalMessage, finalMessageClass);
-                        console.warn("MIDI Conversion Warnings:", warnings);
-                    } else {
-                         updateStatus(finalMessage, finalMessageClass);
-                    }
-
-                } catch (error) {
-                     console.error("Error during MIDI conversion process:", error);
-                     updateStatus(`Error during MIDI conversion: ${error.message}. Check console.`, 'error');
-                }
+                 } catch (error) {
+                      console.error("Error during MIDI conversion:", error);
+                      updateStatus(`Error generating MIDI: ${error.message}`, 'error');
+                 }
             }
 
-             // --- Helper Function ---
-            function updateStatus(message, type = 'info') {
-                statusDiv.textContent = message;
-                statusDiv.className = type; // Removes previous classes automatically
-            }
+             // --- Piano Roll Editing Logic ---
+             function handleGridClick(event) {
+                 if (!event.target.classList.contains('grid-cell')) return; // Clicked on gap or outside
+
+                 const cell = event.target;
+                 const step = parseInt(cell.dataset.step, 10);
+                 const noteName = cell.dataset.note;
+
+                 if (isNaN(step) || !noteName) return; // Invalid cell data
+
+                 // Check if a melody note exists at this exact step and pitch
+                 const existingNoteIndex = currentSequenceData.melody.findIndex(note =>
+                     note.note === noteName && note.startStep <= step && note.endStep > step
+                 );
+
+                 let dataChanged = false;
+                 if (existingNoteIndex > -1) {
+                     // Note exists, delete it
+                     const deletedNote = currentSequenceData.melody.splice(existingNoteIndex, 1)[0];
+                     console.log(`Deleted note: ${deletedNote.note} (${deletedNote.startStep}-${deletedNote.endStep})`);
+                     dataChanged = true;
+                 } else {
+                     // No note exists, add a new 1-step note
+                     // Prevent adding notes outside the initially generated range for simplicity? Or allow extending? Let's allow extending.
+                     currentSequenceData.melody.push({
+                         note: noteName,
+                         startStep: step,
+                         endStep: step + 1, // Only 1 step long
+                         durationSteps: 1,
+                         startSec: 0, // Will be recalculated
+                         durationSec: 0 // Will be recalculated
+                     });
+                      console.log(`Added note: ${noteName} at step ${step}`);
+                     dataChanged = true;
+                      // Ensure maxEndTimeStep is updated if we add beyond current length
+                      currentSequenceData.maxEndTimeStep = Math.max(currentSequenceData.maxEndTimeStep, step + 1);
+                 }
+
+
+                 if (dataChanged) {
+                      // Re-sort melody array by start time (important for some processes)
+                      currentSequenceData.melody.sort((a, b) => a.startStep - b.startStep);
+
+                      calculateTimingsInSeconds(); // Recalculate seconds for all notes
+                      updatePianoRollUI(); // Update the visual display
+
+                      // Update playback part if sequence is not empty
+                      if(currentSequenceData.melody.length > 0 || currentSequenceData.chords.length > 0) {
+                           // If playing, stop and reprepare? Or just reprepare silently? Reprepare silently.
+                           // If stopped, enable play button.
+                           if (Tone.Transport.state === 'started') {
+                               // Maybe stop, reprepare, and restart? Or just let it finish the loop?
+                               // Safest is often to stop, prepare, then user hits play again.
+                               handleStopClick(); // Stop playback if it was running
+                               updateStatus("Sequence edited. Press Play.", "info");
+                           } else {
+                                // Enable play button if it was disabled and there are now notes
+                                playButton.disabled = false;
+                                downloadMidiButton.disabled = false;
+                           }
+                           // preparePlayback(); // Prepare silently for next play press
+                      } else {
+                          // Sequence is now empty
+                          handleStopClick(); // Ensure stopped state
+                          playButton.disabled = true;
+                          downloadMidiButton.disabled = true;
+                      }
+                 }
+             }
+
+
+            // --- Start the application ---
+            initializeApp();
 
         }); // End DOMContentLoaded listener
     </script>
+
 </body>
 </html>
